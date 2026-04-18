@@ -543,24 +543,45 @@ class _ContactColumn extends StatelessWidget {
               _ContactRow(
                 icon: '💬',
                 label: 'WhatsApp',
-                value: whatsapp,
+                value: _formatWhatsAppNumber(whatsapp),
                 centered: centered,
                 onTap: () => _launchWhatsApp(whatsapp),
               ),
 
             if (email.isNotEmpty)
-              _ContactRow(
-                icon: '✉️',
-                label: 'Email',
-                value: email,
-                centered: centered,
-                onTap: () => _launchEmail(email),
-              ),
+              if (email.isNotEmpty)
+                _ContactRow(
+                  icon: '✉️',
+                  label: 'Email',
+                  value: _formatEmail(email),
+                  centered: centered,
+                  onTap: () => _launchEmail(email),
+                ),
           ],
         );
       },
     );
   }
+
+  static String _formatWhatsAppNumber(String value) {
+    String number = value.trim();
+
+    // remove url
+    number = number.replaceAll('https://wa.me/', '');
+    number = number.replaceAll('http://wa.me/', '');
+
+    // keep + if indian code
+    if (!number.startsWith('+') && number.startsWith('91')) {
+      number = '+$number';
+    }
+
+    return number;
+  }
+
+  static String _formatEmail(String value) {
+    return value.replaceAll('mailto:', '').trim();
+  }
+
 
   static Future<void> _launchPhone(String phone) async {
     final uri = Uri.parse("tel:$phone");
@@ -569,17 +590,37 @@ class _ContactColumn extends StatelessWidget {
     }
   }
 
-  static Future<void> _launchEmail(String email) async {
-    final uri = Uri.parse("mailto:$email");
+  static Future<void> _launchEmail(String value) async {
+    String finalUrl = value.trim();
+
+    if (!finalUrl.startsWith('mailto:')) {
+      finalUrl = "mailto:$finalUrl";
+    }
+
+    final uri = Uri.parse(finalUrl);
+
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
   }
 
-  static Future<void> _launchWhatsApp(String number) async {
-    final uri = Uri.parse("https://wa.me/$number");
+  static Future<void> _launchWhatsApp(String value) async {
+    String finalUrl = value.trim();
+
+    if (finalUrl.startsWith('http')) {
+      finalUrl = finalUrl.replaceAll('+', '');
+    } else {
+      final number = finalUrl.replaceAll('+', '');
+      finalUrl = "https://wa.me/$number";
+    }
+
+    final uri = Uri.parse(finalUrl);
+
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
     }
   }
 }

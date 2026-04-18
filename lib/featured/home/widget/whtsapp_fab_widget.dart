@@ -292,12 +292,26 @@ class _WhatsAppFloatingButtonState extends State<WhatsAppFloatingButton>
     );
   }
 
-  static Future<void> _launchWhatsApp(String number) async {
-    final uri = Uri.parse("https://wa.me/$number");
+  static Future<void> _launchWhatsApp(String value) async {
+    String finalUrl = value.trim();
+
+    if (finalUrl.startsWith('http')) {
+      finalUrl = finalUrl.replaceAll('+', '');
+    } else {
+      final number = finalUrl.replaceAll('+', '');
+      finalUrl = "https://wa.me/$number";
+    }
+
+    final uri = Uri.parse(finalUrl);
+
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
     }
   }
+
 }
 
 // ── Ripple ring widget ──────────────────────────────────

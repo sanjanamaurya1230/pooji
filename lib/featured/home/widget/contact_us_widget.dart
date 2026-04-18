@@ -208,7 +208,7 @@ class _ContactInfoCard extends StatelessWidget {
               _CTile(
                 icon: Icons.email_rounded,
                 label: 'Email Us',
-                value: email,
+                value: _formatEmail(email),
                 onTap: () => _launchEmail(email),
               ),
 
@@ -224,19 +224,17 @@ class _ContactInfoCard extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-              /// Static Time
-              _CTile(
-                icon: Icons.access_time_rounded,
-                label: 'Working Hours',
-                value: 'Mon–Sun: 7:00 AM – 9:00 PM',
-                onTap: () {},
-              ),
             ],
           ),
         );
       },
     );
   }
+
+  static String _formatEmail(String value) {
+    return value.replaceAll('mailto:', '').trim();
+  }
+
   static Future<void> _launchPhone(String phone) async {
     final uri = Uri.parse("tel:$phone");
     if (await canLaunchUrl(uri)) {
@@ -244,12 +242,20 @@ class _ContactInfoCard extends StatelessWidget {
     }
   }
 
-  static Future<void> _launchEmail(String email) async {
-    final uri = Uri.parse("mailto:$email");
+  static Future<void> _launchEmail(String value) async {
+    String finalUrl = value.trim();
+
+    if (!finalUrl.startsWith('mailto:')) {
+      finalUrl = "mailto:$finalUrl";
+    }
+
+    final uri = Uri.parse(finalUrl);
+
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
   }
+
 
 
 }// ── Contact tile ──────────────────────────────────────────
@@ -478,8 +484,17 @@ class _WhatsAppCardState extends State<_WhatsAppCard> {
     );
   }
 
-  static Future<void> _launchWhatsApp(String number) async {
-    final uri = Uri.parse("https://wa.me/$number");
+  static Future<void> _launchWhatsApp(String value) async {
+    String finalUrl = value.trim();
+
+    if (finalUrl.startsWith('http')) {
+      finalUrl = finalUrl.replaceAll('+', '');
+    } else {
+      final number = finalUrl.replaceAll('+', '');
+      finalUrl = "https://wa.me/$number";
+    }
+
+    final uri = Uri.parse(finalUrl);
 
     if (await canLaunchUrl(uri)) {
       await launchUrl(
@@ -490,26 +505,3 @@ class _WhatsAppCardState extends State<_WhatsAppCard> {
   }
 }
 
-class _TrustBadge extends StatelessWidget {
-  final String icon, label;
-  const _TrustBadge({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(icon, style: const TextStyle(fontSize: 13)),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: Colors.white.withOpacity(0.7),
-          ),
-        ),
-      ],
-    );
-  }
-}
