@@ -503,59 +503,86 @@ class _ContactColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: centered
-          ? CrossAxisAlignment.center
-          : CrossAxisAlignment.start,
-      children: [
-        _ColHeading('Contact', centered: centered),
-        const SizedBox(height: 16),
-        _ContactRow(
-          icon: '📞',
-          label: 'Call Us',
-          value: '+91 99999 99999',
-          centered: centered,
-          onTap: _launchPhone,
-        ),
-        const SizedBox(height: 4),
-        _ContactRow(
-          icon: '✉️',
-          label: 'Email',
-          value: 'support@poojify.in',
-          centered: centered,
-          onTap: _launchEmail,
-        ),
-        const SizedBox(height: 4),
-        _ContactRow(
-          icon: '📍',
-          label: 'Location',
-          value: 'Lucknow, UP, India',
-          centered: centered,
-          onTap: null,
-        ),
-        const SizedBox(height: 4),
-        _ContactRow(
-          icon: '🕐',
-          label: 'Hours',
-          value: '7 AM – 9 PM Daily',
-          centered: centered,
-          onTap: null,
-        ),
-      ],
+    return Consumer<AppSettingViewModel>(
+      builder: (context, vm, child) {
+        final supportList = vm.appDetails.data?.customerSupport ?? [];
+
+        String phone = '';
+        String email = '';
+        String whatsapp = '';
+
+        for (var item in supportList) {
+          final type = item.type?.toLowerCase();
+
+          if (type == 'phone') {
+            phone = item.value ?? '';
+          } else if (type == 'email') {
+            email = item.value ?? '';
+          } else if (type == 'whatsapp') {
+            whatsapp = item.value ?? '';
+          }
+        }
+
+        return Column(
+          crossAxisAlignment:
+          centered ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+          children: [
+            _ColHeading('Contact', centered: centered),
+            const SizedBox(height: 16),
+
+            if (phone.isNotEmpty)
+              _ContactRow(
+                icon: '📞',
+                label: 'Call Us',
+                value: phone,
+                centered: centered,
+                onTap: () => _launchPhone(phone),
+              ),
+
+            if (whatsapp.isNotEmpty)
+              _ContactRow(
+                icon: '💬',
+                label: 'WhatsApp',
+                value: whatsapp,
+                centered: centered,
+                onTap: () => _launchWhatsApp(whatsapp),
+              ),
+
+            if (email.isNotEmpty)
+              _ContactRow(
+                icon: '✉️',
+                label: 'Email',
+                value: email,
+                centered: centered,
+                onTap: () => _launchEmail(email),
+              ),
+          ],
+        );
+      },
     );
   }
 
-  static Future<void> _launchPhone() async {
-    final uri = Uri.parse('tel:+919999999999');
-    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  static Future<void> _launchPhone(String phone) async {
+    final uri = Uri.parse("tel:$phone");
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
   }
 
-  static Future<void> _launchEmail() async {
-    final uri = Uri.parse('mailto:support@poojify.in');
-    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  static Future<void> _launchEmail(String email) async {
+    final uri = Uri.parse("mailto:$email");
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  static Future<void> _launchWhatsApp(String number) async {
+    final uri = Uri.parse("https://wa.me/$number");
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }
-
 // ─────────────────────────────────────────────
 //  CONTACT ROW ITEM
 // ─────────────────────────────────────────────

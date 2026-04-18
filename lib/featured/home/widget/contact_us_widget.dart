@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:poojify_landing_site/featured/home/view_model/home_view_model.dart';
+import 'package:poojify_landing_site/view_model/app_setting_view_model.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import 'about_section_widget.dart';
 
@@ -11,6 +13,7 @@ class ContactSectionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.read<HomeViewModel>();
+    final pvm = Provider.of<AppSettingViewModel>(context);
     return LayoutBuilder(builder: (context, constraints) {
       final isMobile = constraints.maxWidth < 700;
       return Container(
@@ -39,9 +42,9 @@ class ContactSectionWidget extends StatelessWidget {
 
             // ── Body ────────────────────────────────────
             if (isMobile)
-              _MobileBody(vm: vm)
+              _MobileBody(vm: vm, pvm: pvm,)
             else
-              _DesktopBody(vm: vm),
+              _DesktopBody(vm: vm, pvm: pvm,),
           ],
         ),
       );
@@ -53,7 +56,8 @@ class ContactSectionWidget extends StatelessWidget {
 
 class _DesktopBody extends StatelessWidget {
   final HomeViewModel vm;
-  const _DesktopBody({required this.vm});
+  final AppSettingViewModel pvm;
+  const _DesktopBody({required this.vm, required this.pvm});
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +66,7 @@ class _DesktopBody extends StatelessWidget {
       children: [
         Expanded(child: _ContactInfoCard(vm: vm)),
         const SizedBox(width: 24),
-        Expanded(child: _WhatsAppCard(vm: vm)),
+        Expanded(child: _WhatsAppCard(vm: vm, pvm: pvm,)),
       ],
     );
   }
@@ -70,7 +74,8 @@ class _DesktopBody extends StatelessWidget {
 
 class _MobileBody extends StatelessWidget {
   final HomeViewModel vm;
-  const _MobileBody({required this.vm});
+  final AppSettingViewModel pvm;
+  const _MobileBody({required this.vm, required this.pvm});
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +83,7 @@ class _MobileBody extends StatelessWidget {
       children: [
         _ContactInfoCard(vm: vm),
         const SizedBox(height: 20),
-        _WhatsAppCard(vm: vm),
+        _WhatsAppCard(vm: vm, pvm: pvm, ),
       ],
     );
   }
@@ -92,120 +97,162 @@ class _ContactInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEDD5B0).withOpacity(0.6)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
+    return Consumer2<HomeViewModel, AppSettingViewModel>(
+      builder: (context, vm, pvm,  child) {
+        /// API List
+        final supportList = pvm.appDetails.data?.customerSupport ?? [];
+
+        String phone = '+91 99999 99999';
+        String email = 'support@poojify.in';
+
+        for (var item in supportList) {
+          final type = item.type?.toLowerCase();
+
+          if (type == 'phone') {
+            phone = item.value ?? phone;
+          } else if (type == 'email') {
+            email = item.value ?? email;
+          }
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: const Color(0xFFEDD5B0).withOpacity(0.6),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min, // ✅ VERY IMPORTANT
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Header ──
-          Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              /// Header
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF7B1530), Color(0xFFCC5500)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        '📞',
+                        style: TextStyle(fontSize: 20),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Contact Details',
+                        style: GoogleFonts.playfairDisplay(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      Text(
+                        'Hum yahan hain aapke liye',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11.5,
+                          color: AppColors.textLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
               Container(
-                width: 42,
-                height: 42,
+                width: 48,
+                height: 3,
+                margin: const EdgeInsets.only(left: 56),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFF7B1530), Color(0xFFCC5500)],
                   ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Center(
-                  child: Text('📞', style: TextStyle(fontSize: 20)),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Contact Details',
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                  Text(
-                    'Hum yahan hain aapke liye',
-                    style: GoogleFonts.poppins(
-                      fontSize: 11.5,
-                      color: AppColors.textLight,
-                    ),
-                  ),
-                ],
+
+              const SizedBox(height: 24),
+
+              /// Dynamic Phone
+              _CTile(
+                icon: Icons.phone_rounded,
+                label: 'Call Us',
+                value: phone,
+                onTap: () => _launchPhone(phone),
+              ),
+
+              const SizedBox(height: 12),
+
+              /// Dynamic Email
+              _CTile(
+                icon: Icons.email_rounded,
+                label: 'Email Us',
+                value: email,
+                onTap: () => _launchEmail(email),
+              ),
+
+              const SizedBox(height: 12),
+
+              /// Static Address
+              _CTile(
+                icon: Icons.location_on_rounded,
+                label: 'Location',
+                value: 'Lucknow, Uttar Pradesh',
+                onTap: () {},
+              ),
+
+              const SizedBox(height: 12),
+
+              /// Static Time
+              _CTile(
+                icon: Icons.access_time_rounded,
+                label: 'Working Hours',
+                value: 'Mon–Sun: 7:00 AM – 9:00 PM',
+                onTap: () {},
               ),
             ],
           ),
-
-          const SizedBox(height: 8),
-
-          Container(
-            width: 48,
-            height: 3,
-            margin: const EdgeInsets.only(left: 56),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF7B1530), Color(0xFFCC5500)],
-              ),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // ── Tiles ──
-          _CTile(
-            icon: Icons.phone_rounded,
-            label: 'Call Us',
-            value: '+91 99999 99999',
-            onTap: vm.launchPhone,
-          ),
-          const SizedBox(height: 12),
-
-          _CTile(
-            icon: Icons.email_rounded,
-            label: 'Email Us',
-            value: 'support@poojify.in',
-            onTap: vm.launchEmail,
-          ),
-          const SizedBox(height: 12),
-
-          _CTile(
-            icon: Icons.location_on_rounded,
-            label: 'Location',
-            value: 'Lucknow, Uttar Pradesh',
-            onTap: () {},
-          ),
-          const SizedBox(height: 12),
-
-          _CTile(
-            icon: Icons.access_time_rounded,
-            label: 'Working Hours',
-            value: 'Mon–Sun: 7:00 AM – 9:00 PM',
-            onTap: () {},
-          ),
-
-          const SizedBox(height: 12), // ✅ Spacer removed
-
-        ],
-      ),
+        );
+      },
     );
   }
-}
-// ── Contact tile ──────────────────────────────────────────
+  static Future<void> _launchPhone(String phone) async {
+    final uri = Uri.parse("tel:$phone");
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  static Future<void> _launchEmail(String email) async {
+    final uri = Uri.parse("mailto:$email");
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+
+}// ── Contact tile ──────────────────────────────────────────
 
 class _CTile extends StatefulWidget {
   final IconData icon;
@@ -317,7 +364,8 @@ class _CTileState extends State<_CTile> {
 
 class _WhatsAppCard extends StatefulWidget {
   final HomeViewModel vm;
-  const _WhatsAppCard({required this.vm});
+  final AppSettingViewModel pvm;
+  const _WhatsAppCard({required this.vm, required this.pvm});
 
   @override
   State<_WhatsAppCard> createState() => _WhatsAppCardState();
@@ -328,193 +376,117 @@ class _WhatsAppCardState extends State<_WhatsAppCard> {
 
   @override
   Widget build(BuildContext context) {
+    final supportList =
+        widget.pvm.appDetails.data?.customerSupport ?? [];
+
+    String whatsapp = '';
+
+    for (var item in supportList) {
+      final type = item.type?.toLowerCase();
+
+      if (type == 'whatsapp') {
+        whatsapp = item.value ?? '';
+      }
+    }
+
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF054D44), Color(0xFF128C7E), Color(0xFF25D366)],
-          stops: [0.0, 0.5, 1.0],
+          colors: [
+            Color(0xFF054D44),
+            Color(0xFF128C7E),
+            Color(0xFF25D366)
+          ],
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF25D366).withOpacity(0.28),
             blurRadius: 28,
-            spreadRadius: 0,
             offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          // Decorative circle top-right
-          Positioned(
-            top: -30,
-            right: -30,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -20,
-            left: -20,
-            child: Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.04),
-              ),
-            ),
-          ),
 
-          // Content
-          Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Icon bubble
-                Container(
-                  width: 72,
-                  height: 72,
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              '💬',
+              style: TextStyle(fontSize: 50),
+            ),
+
+            const SizedBox(height: 20),
+
+            Text(
+              'WhatsApp pe Order\nKarein Abhi!',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            Text(
+              'Seedha message karein aur\nTurant response payein.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: Colors.white.withOpacity(0.85),
+              ),
+            ),
+
+            const SizedBox(height: 28),
+
+            MouseRegion(
+              onEnter: (_) => setState(() => _btnHovered = true),
+              onExit: (_) => setState(() => _btnHovered = false),
+              child: GestureDetector(
+                onTap: () => _launchWhatsApp(whatsapp),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: double.infinity,
+                  padding:
+                  const EdgeInsets.symmetric(vertical: 15),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: Colors.white.withOpacity(0.25), width: 1.5),
-                  ),
-                  child: const Center(
-                    child: Text('💬', style: TextStyle(fontSize: 34)),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Heading
-                Text(
-                  'WhatsApp pe Order\nKarein Abhi!',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
                     color: Colors.white,
-                    height: 1.3,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-                const SizedBox(height: 12),
-
-                // Subtitle
-                Text(
-                  'Seedha message karein aur\nturant response payein.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 13.5,
-                    color: Colors.white.withOpacity(0.82),
-                    height: 1.6,
-                  ),
-                ),
-                const SizedBox(height: 28),
-
-                // Divider
-                Row(
-                  children: [
-                    Expanded(
-                      child: Divider(
-                        color: Colors.white.withOpacity(0.2),
-                        thickness: 0.6,
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        'TAP TO CONNECT',
-                        style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withOpacity(0.45),
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Divider(
-                        color: Colors.white.withOpacity(0.2),
-                        thickness: 0.6,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 28),
-
-                // CTA button
-                MouseRegion(
-                  onEnter: (_) => setState(() => _btnHovered = true),
-                  onExit: (_) => setState(() => _btnHovered = false),
-                  child: GestureDetector(
-                    onTap: widget.vm.openWhatsApp,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      decoration: BoxDecoration(
-                        color: _btnHovered
-                            ? Colors.white
-                            : Colors.white.withOpacity(0.92),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black
-                                .withOpacity(_btnHovered ? 0.18 : 0.10),
-                            blurRadius: _btnHovered ? 18 : 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text('📱',
-                              style: TextStyle(fontSize: 20)),
-                          const SizedBox(width: 10),
-                          Text(
-                            'WhatsApp Now',
-                            style: GoogleFonts.poppins(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF054D44),
-                            ),
-                          ),
-                        ],
+                  child: Center(
+                    child: Text(
+                      'WhatsApp Now',
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF054D44),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-
-                // Trust badges row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _TrustBadge(icon: '⚡', label: 'Instant Reply'),
-                    const SizedBox(width: 20),
-                    _TrustBadge(icon: '🔒', label: 'Secure'),
-                    const SizedBox(width: 20),
-                    _TrustBadge(icon: '🕐', label: '24/7'),
-                  ],
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  static Future<void> _launchWhatsApp(String number) async {
+    final uri = Uri.parse("https://wa.me/$number");
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+    }
   }
 }
 

@@ -55,14 +55,6 @@ class HomeViewModel extends ChangeNotifier {
 
   // ── External launchers ──────────────────────────────
 
-  Future<void> openWhatsApp() async {
-    const phone   = '919999999999'; // replace with real number
-    const message = 'Namaste! I want to order puja samagri from Poojify 🙏';
-    final uri = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
 
   Future<void> openWhatsAppPandit({String? date, String? pujaType}) async {
     const phone = '919999999999';
@@ -75,15 +67,7 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> launchEmail() async {
-    final uri = Uri.parse('mailto:support@poojify.in?subject=Inquiry from Poojify Website');
-    if (await canLaunchUrl(uri)) await launchUrl(uri);
-  }
 
-  Future<void> launchPhone() async {
-    final uri = Uri.parse('tel:+919999999999');
-    if (await canLaunchUrl(uri)) await launchUrl(uri);
-  }
 
   @override
   void dispose() {

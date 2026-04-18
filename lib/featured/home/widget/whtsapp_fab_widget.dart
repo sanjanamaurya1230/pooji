@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:poojify_landing_site/featured/home/view_model/home_view_model.dart';
+import 'package:poojify_landing_site/view_model/app_setting_view_model.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 
 class WhatsAppFloatingButton extends StatefulWidget {
@@ -81,7 +83,27 @@ class _WhatsAppFloatingButtonState extends State<WhatsAppFloatingButton>
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.read<HomeViewModel>();
+    final vm = context.read<AppSettingViewModel>();
+
+    final supportList = vm.appDetails.data?.customerSupport ?? [];
+
+    String phone = '';
+    String email = '';
+    String whatsapp = '';
+
+    for (var item in supportList) {
+      final type = item.type?.toLowerCase();
+
+      if (type == 'phone') {
+        phone = item.value ?? '';
+      } else if (type == 'email') {
+        email = item.value ?? '';
+      } else if (type == 'whatsapp') {
+        whatsapp = item.value ?? '';
+      }
+    }
+
+
 
     return Positioned(
       bottom: 28,
@@ -106,7 +128,8 @@ class _WhatsAppFloatingButtonState extends State<WhatsAppFloatingButton>
                 ? GestureDetector(
               key: const ValueKey('tooltip'),
               onTap: () {
-                vm.openWhatsApp();
+              _launchWhatsApp(whatsapp);
+
                 setState(() => _showTooltip = false);
               },
               child: Container(
@@ -267,6 +290,13 @@ class _WhatsAppFloatingButtonState extends State<WhatsAppFloatingButton>
         ],
       ),
     );
+  }
+
+  static Future<void> _launchWhatsApp(String number) async {
+    final uri = Uri.parse("https://wa.me/$number");
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }
 
