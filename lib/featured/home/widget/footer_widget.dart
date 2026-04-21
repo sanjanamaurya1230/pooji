@@ -3,14 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:poojify_landing_site/featured/home/widget/policy_page.dart';
 import 'package:poojify_landing_site/generated/assets.dart';
 import 'package:poojify_landing_site/helper/response/status.dart';
+import 'package:poojify_landing_site/main.dart';
 import 'package:poojify_landing_site/model/setting_model.dart';
 import 'package:poojify_landing_site/view_model/app_setting_view_model.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// ─────────────────────────────────────────────
-//  COLORS
-// ─────────────────────────────────────────────
 class _C {
   static const bg = Color(0xFFE87722);
   static const gold = Color(0xFFFFBF47);
@@ -22,10 +20,6 @@ class _C {
   static const iconBg = Color(0x14FFFFFF);
 }
 
-// ─────────────────────────────────────────────
-//  MAIN FOOTER WIDGET — NOW StatefulWidget
-//  FIX: fetchAppDetails() is called in initState
-// ─────────────────────────────────────────────
 class FooterWidget extends StatefulWidget {
   const FooterWidget({super.key});
 
@@ -37,10 +31,8 @@ class _FooterWidgetState extends State<FooterWidget> {
   @override
   void initState() {
     super.initState();
-    // ✅ KEY FIX: Fetch data after first frame so context is available
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final vm = context.read<AppSettingViewModel>();
-      // Only fetch if not already loaded — avoids duplicate network calls
       if (vm.appDetails.status != Status.COMPLETED) {
         vm.fetchAppDetails();
       }
@@ -73,22 +65,16 @@ class _FooterWidgetState extends State<FooterWidget> {
             ),
             child: Column(
               children: [
-                isMobile
-                    ? const _MobileFooter()
-                    : const _DesktopFooter(),
+                isMobile ? const _MobileFooter() : const _DesktopFooter(),
                 const SizedBox(height: 36),
                 const Divider(color: _C.white20, thickness: 0.5),
                 const SizedBox(height: 20),
-                // ── Dynamic policy links from API ──
                 const _DynamicPolicyLinksRow(),
                 const SizedBox(height: 16),
                 Text(
                   '© ${DateTime.now().year} Poojify. Made with 🙏 in Lucknow.',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: _C.white50,
-                  ),
+                  style: GoogleFonts.poppins(fontSize: 12, color: _C.white50),
                 ),
               ],
             ),
@@ -99,9 +85,7 @@ class _FooterWidgetState extends State<FooterWidget> {
   }
 }
 
-// ─────────────────────────────────────────────
-//  DYNAMIC POLICY LINKS — reads from ViewModel
-// ─────────────────────────────────────────────
+// ── Dynamic Policy Links ─────────────────────────────────────────────────────
 
 class _DynamicPolicyLinksRow extends StatelessWidget {
   const _DynamicPolicyLinksRow();
@@ -112,7 +96,6 @@ class _DynamicPolicyLinksRow extends StatelessWidget {
       builder: (context, vm, _) {
         final response = vm.appDetails;
 
-        // ✅ FIX: Show shimmer/loading dots while fetching
         if (response.status == Status.LOADING) {
           return Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -148,17 +131,12 @@ class _DynamicPolicyLinksRow extends StatelessWidget {
           alignment: WrapAlignment.center,
           spacing: 8,
           runSpacing: 8,
-          clipBehavior: Clip.none,
           children: [
             for (int i = 0; i < items.length; i++) ...[
               _PolicyLink(datum: items[i]),
-
               if (i < items.length - 1)
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 7,
-                    horizontal: 2,
-                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 2),
                   child: Container(
                     width: 4,
                     height: 4,
@@ -176,9 +154,7 @@ class _DynamicPolicyLinksRow extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────
-//  SINGLE POLICY LINK BUTTON
-// ─────────────────────────────────────────────
+// ── Single Policy Link ────────────────────────────────────────────────────────
 
 class _PolicyLink extends StatefulWidget {
   final AppData datum;
@@ -198,25 +174,15 @@ class _PolicyLinkState extends State<_PolicyLink> {
       onExit: (_) => setState(() => _hover = false),
       child: GestureDetector(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ChangeNotifierProvider.value(
-                // ✅ FIX: Pass the existing ViewModel so PolicyPage
-                // doesn't need to re-fetch — data is already loaded
-                value: context.read<AppSettingViewModel>(),
-                child: PolicyPage(initialType: widget.datum.type),
-              ),
-            ),
-          );
+          final slug = typeToSlug(widget.datum.type ?? '');
+          appRouter.go('/policy/$slug');
         },
         child: Text(
           widget.datum.type ?? '',
           style: GoogleFonts.poppins(
             fontSize: 12,
             color: _hover ? _C.gold : _C.white50,
-            decoration:
-            _hover ? TextDecoration.underline : TextDecoration.none,
+            decoration: _hover ? TextDecoration.underline : TextDecoration.none,
             decorationColor: _C.gold,
           ),
         ),
@@ -225,17 +191,16 @@ class _PolicyLinkState extends State<_PolicyLink> {
   }
 }
 
-// ─────────────────────────────────────────────
-//  DESKTOP / MOBILE LAYOUTS
-// ─────────────────────────────────────────────
+// ── Desktop / Mobile Layouts ──────────────────────────────────────────────────
+
 class _DesktopFooter extends StatelessWidget {
   const _DesktopFooter();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return const Row(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         Expanded(flex: 5, child: _BrandColumn()),
         SizedBox(width: 60),
         Expanded(flex: 3, child: _LinksColumn()),
@@ -264,9 +229,8 @@ class _MobileFooter extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────
-//  BRAND COLUMN
-// ─────────────────────────────────────────────
+// ── Brand Column ──────────────────────────────────────────────────────────────
+
 class _BrandColumn extends StatefulWidget {
   final bool centered;
   const _BrandColumn({this.centered = false});
@@ -296,11 +260,9 @@ class _BrandColumnState extends State<_BrandColumn>
 
   @override
   Widget build(BuildContext context) {
-    final align = widget.centered
-        ? CrossAxisAlignment.center
-        : CrossAxisAlignment.start;
-    final textAlign =
-    widget.centered ? TextAlign.center : TextAlign.start;
+    final align =
+    widget.centered ? CrossAxisAlignment.center : CrossAxisAlignment.start;
+    final textAlign = widget.centered ? TextAlign.center : TextAlign.start;
 
     return Column(
       crossAxisAlignment: align,
@@ -316,14 +278,10 @@ class _BrandColumnState extends State<_BrandColumn>
         Text(
           'Har Pooja, Har Tyohaar.\nYour trusted source for puja samagri\nand pandit bookings in Lucknow.',
           textAlign: textAlign,
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            color: _C.white80,
-            height: 1.8,
-          ),
+          style: GoogleFonts.poppins(fontSize: 13, color: _C.white80, height: 1.8),
         ),
         const SizedBox(height: 22),
-        _PlayStoreButton(),
+        const _PlayStoreButton(),
         const SizedBox(height: 22),
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -342,10 +300,11 @@ class _BrandColumnState extends State<_BrandColumn>
   }
 }
 
-// ─────────────────────────────────────────────
-//  PLAY STORE BUTTON
-// ─────────────────────────────────────────────
+// ── Play Store Button ─────────────────────────────────────────────────────────
+
 class _PlayStoreButton extends StatefulWidget {
+  const _PlayStoreButton();
+
   @override
   State<_PlayStoreButton> createState() => _PlayStoreButtonState();
 }
@@ -369,17 +328,12 @@ class _PlayStoreButtonState extends State<_PlayStoreButton> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
           decoration: BoxDecoration(
-            color: _hover
-                ? _C.gold.withOpacity(0.22)
-                : _C.gold.withOpacity(0.12),
+            color: _hover ? _C.gold.withOpacity(0.22) : _C.gold.withOpacity(0.12),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: _hover
-                  ? _C.gold.withOpacity(0.85)
-                  : _C.gold.withOpacity(0.4),
+              color: _hover ? _C.gold.withOpacity(0.85) : _C.gold.withOpacity(0.4),
             ),
           ),
           child: Row(
@@ -428,9 +382,8 @@ class _PlayStoreButtonState extends State<_PlayStoreButton> {
   }
 }
 
-// ─────────────────────────────────────────────
-//  SOCIAL BUTTON
-// ─────────────────────────────────────────────
+// ── Social Button ─────────────────────────────────────────────────────────────
+
 class _SocialBtn extends StatefulWidget {
   final String icon;
   final String tooltip;
@@ -458,16 +411,12 @@ class _SocialBtnState extends State<_SocialBtn> {
             color: _hover ? _C.gold.withOpacity(0.18) : _C.white08,
             borderRadius: BorderRadius.circular(9),
             border: Border.all(
-              color:
-              _hover ? _C.gold.withOpacity(0.45) : _C.white20,
+              color: _hover ? _C.gold.withOpacity(0.45) : _C.white20,
               width: 0.5,
             ),
           ),
           child: Center(
-            child: Text(
-              widget.icon,
-              style: const TextStyle(fontSize: 15),
-            ),
+            child: Text(widget.icon, style: const TextStyle(fontSize: 15)),
           ),
         ),
       ),
@@ -475,9 +424,8 @@ class _SocialBtnState extends State<_SocialBtn> {
   }
 }
 
-// ─────────────────────────────────────────────
-//  QUICK LINKS COLUMN
-// ─────────────────────────────────────────────
+// ── Quick Links Column ────────────────────────────────────────────────────────
+
 class _LinksColumn extends StatelessWidget {
   final bool centered;
   const _LinksColumn({this.centered = false});
@@ -485,16 +433,14 @@ class _LinksColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: centered
-          ? CrossAxisAlignment.center
-          : CrossAxisAlignment.start,
+      crossAxisAlignment:
+      centered ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: [
         _ColHeading('Quick Links', centered: centered),
         const SizedBox(height: 16),
-        _FooterNavLink('Home', centered: centered, onTap: () {}),
+        _FooterNavLink('Home', centered: centered, onTap: () => appRouter.go('/')),
         _FooterNavLink('Puja Samagri', centered: centered, onTap: () {}),
-        _FooterNavLink('Pandit Booking',
-            centered: centered, onTap: () {}),
+        _FooterNavLink('Pandit Booking', centered: centered, onTap: () {}),
         _FooterNavLink('About Us', centered: centered, onTap: () {}),
         _FooterNavLink('Contact Us', centered: centered, onTap: () {}),
       ],
@@ -502,9 +448,8 @@ class _LinksColumn extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────
-//  CONTACT COLUMN
-// ─────────────────────────────────────────────
+// ── Contact Column ────────────────────────────────────────────────────────────
+
 class _ContactColumn extends StatelessWidget {
   final bool centered;
   const _ContactColumn({this.centered = false});
@@ -521,14 +466,9 @@ class _ContactColumn extends StatelessWidget {
 
         for (var item in supportList) {
           final type = item.type?.toLowerCase();
-
-          if (type == 'phone') {
-            phone = item.value ?? '';
-          } else if (type == 'email') {
-            email = item.value ?? '';
-          } else if (type == 'whatsapp') {
-            whatsapp = item.value ?? '';
-          }
+          if (type == 'phone') phone = item.value ?? '';
+          else if (type == 'email') email = item.value ?? '';
+          else if (type == 'whatsapp') whatsapp = item.value ?? '';
         }
 
         return Column(
@@ -537,7 +477,6 @@ class _ContactColumn extends StatelessWidget {
           children: [
             _ColHeading('Contact', centered: centered),
             const SizedBox(height: 16),
-
             if (phone.isNotEmpty)
               _ContactRow(
                 icon: '📞',
@@ -546,7 +485,6 @@ class _ContactColumn extends StatelessWidget {
                 centered: centered,
                 onTap: () => _launchPhone(phone),
               ),
-
             if (whatsapp.isNotEmpty)
               _ContactRow(
                 icon: '💬',
@@ -555,16 +493,14 @@ class _ContactColumn extends StatelessWidget {
                 centered: centered,
                 onTap: () => _launchWhatsApp(whatsapp),
               ),
-
             if (email.isNotEmpty)
-              if (email.isNotEmpty)
-                _ContactRow(
-                  icon: '✉️',
-                  label: 'Email',
-                  value: _formatEmail(email),
-                  centered: centered,
-                  onTap: () => _launchEmail(email),
-                ),
+              _ContactRow(
+                icon: '✉️',
+                label: 'Email',
+                value: _formatEmail(email),
+                centered: centered,
+                onTap: () => _launchEmail(email),
+              ),
           ],
         );
       },
@@ -572,69 +508,46 @@ class _ContactColumn extends StatelessWidget {
   }
 
   static String _formatWhatsAppNumber(String value) {
-    String number = value.trim();
-
-    // remove url
-    number = number.replaceAll('https://wa.me/', '');
-    number = number.replaceAll('http://wa.me/', '');
-
-    // keep + if indian code
+    String number = value.trim()
+        .replaceAll('https://wa.me/', '')
+        .replaceAll('http://wa.me/', '');
     if (!number.startsWith('+') && number.startsWith('91')) {
       number = '+$number';
     }
-
     return number;
   }
 
-  static String _formatEmail(String value) {
-    return value.replaceAll('mailto:', '').trim();
-  }
-
+  static String _formatEmail(String value) =>
+      value.replaceAll('mailto:', '').trim();
 
   static Future<void> _launchPhone(String phone) async {
-    final uri = Uri.parse("tel:$phone");
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
+    final uri = Uri.parse('tel:$phone');
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
   static Future<void> _launchEmail(String value) async {
     String finalUrl = value.trim();
-
-    if (!finalUrl.startsWith('mailto:')) {
-      finalUrl = "mailto:$finalUrl";
-    }
-
+    if (!finalUrl.startsWith('mailto:')) finalUrl = 'mailto:$finalUrl';
     final uri = Uri.parse(finalUrl);
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
   static Future<void> _launchWhatsApp(String value) async {
     String finalUrl = value.trim();
-
     if (finalUrl.startsWith('http')) {
       finalUrl = finalUrl.replaceAll('+', '');
     } else {
-      final number = finalUrl.replaceAll('+', '');
-      finalUrl = "https://wa.me/$number";
+      finalUrl = 'https://wa.me/${finalUrl.replaceAll('+', '')}';
     }
-
     final uri = Uri.parse(finalUrl);
-
     if (await canLaunchUrl(uri)) {
-      await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 }
-// ─────────────────────────────────────────────
-//  CONTACT ROW ITEM
-// ─────────────────────────────────────────────
+
+// ── Contact Row ───────────────────────────────────────────────────────────────
+
 class _ContactRow extends StatefulWidget {
   final String icon;
   final String label;
@@ -659,68 +572,62 @@ class _ContactRowState extends State<_ContactRow> {
 
   @override
   Widget build(BuildContext context) {
-    final content = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        mainAxisSize:
-        widget.centered ? MainAxisSize.min : MainAxisSize.max,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color:
-              _hover ? _C.gold.withOpacity(0.18) : _C.iconBg,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Text(
-                widget.icon,
-                style: const TextStyle(fontSize: 14),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.label,
-                style: GoogleFonts.poppins(
-                  fontSize: 10,
-                  color: _C.white50,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.7,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                widget.value,
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: _hover ? _C.white : _C.white80,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(onTap: widget.onTap, child: content),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          child: Row(
+            mainAxisSize: widget.centered ? MainAxisSize.min : MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: _hover ? _C.gold.withOpacity(0.18) : _C.iconBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(widget.icon, style: const TextStyle(fontSize: 14)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.label,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      color: _C.white50,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.7,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    widget.value,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: _hover ? _C.white : _C.white80,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
 
-// ─────────────────────────────────────────────
-//  COLUMN HEADING
-// ─────────────────────────────────────────────
+// ── Column Heading ────────────────────────────────────────────────────────────
+
 class _ColHeading extends StatelessWidget {
   final String text;
   final bool centered;
@@ -729,9 +636,8 @@ class _ColHeading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: centered
-          ? CrossAxisAlignment.center
-          : CrossAxisAlignment.start,
+      crossAxisAlignment:
+      centered ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: [
         Text(
           text.toUpperCase(),
@@ -756,15 +662,13 @@ class _ColHeading extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────
-//  FOOTER NAV LINK
-// ─────────────────────────────────────────────
+// ── Footer Nav Link ───────────────────────────────────────────────────────────
+
 class _FooterNavLink extends StatefulWidget {
   final String label;
   final bool centered;
   final VoidCallback onTap;
-  const _FooterNavLink(this.label,
-      {required this.onTap, this.centered = false});
+  const _FooterNavLink(this.label, {required this.onTap, this.centered = false});
 
   @override
   State<_FooterNavLink> createState() => _FooterNavLinkState();
@@ -783,8 +687,7 @@ class _FooterNavLinkState extends State<_FooterNavLink>
       vsync: this,
       duration: const Duration(milliseconds: 200),
     );
-    _underline =
-        CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _underline = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
   }
 
   @override
@@ -821,7 +724,6 @@ class _FooterNavLinkState extends State<_FooterNavLink>
                   style: GoogleFonts.poppins(
                     fontSize: 13.5,
                     color: _hover ? _C.white : _C.white80,
-                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),

@@ -40,6 +40,9 @@ dependencies:
   flutter_svg:
   shared_preferences:
   mime:
+  go_router:
+  flutter_widget_from_html_core:
+  url_strategy:
 
 
 dev_dependencies:

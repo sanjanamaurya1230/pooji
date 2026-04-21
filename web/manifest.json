@@ -1,6 +1,6 @@
 {
-    "name": "poojify_landing_site",
-    "short_name": "poojify_landing_site",
+    "name": "Poojify",
+    "short_name": "Poojify",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

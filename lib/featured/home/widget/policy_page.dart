@@ -1,58 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:poojify_landing_site/helper/response/api_response.dart';
 import 'package:poojify_landing_site/helper/response/status.dart';
+import 'package:poojify_landing_site/main.dart';
 import 'package:poojify_landing_site/model/setting_model.dart';
 import 'package:poojify_landing_site/view_model/app_setting_view_model.dart';
 import 'package:provider/provider.dart';
 
-// ─────────────────────────────────────────────
-//  POLICY PAGE — fetches from API, renders dynamically
-// ─────────────────────────────────────────────
+String typeToSlug(String type) =>
+    type.toLowerCase().trim().replaceAll(' ', '-').replaceAll('&', 'and');
 
 class PolicyPage extends StatefulWidget {
-  /// [initialType] — pass the "type" string from the API datum that was tapped.
-  /// e.g. "Privacy Policy", "Terms Conditions", "Help Support"
-  final String? initialType;
-
-  const PolicyPage({super.key, this.initialType});
+  final String initialSlug;
+  const PolicyPage({super.key, required this.initialSlug});
 
   @override
   State<PolicyPage> createState() => _PolicyPageState();
 }
 
 class _PolicyPageState extends State<PolicyPage> {
-  // Tracks which tab (Datum) is currently selected by its `type` string
-  String? _selectedType;
+  String _selectedSlug = '';
 
   @override
   void initState() {
     super.initState();
-    _selectedType = widget.initialType;
-
-    // Fetch if not already loaded
+    _selectedSlug = widget.initialSlug;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final vm = context.read<AppSettingViewModel>();
       if (vm.appDetails.status != Status.COMPLETED) {
         vm.fetchAppDetails();
-      } else if (_selectedType == null) {
-        // Auto-select first available tab
-        _selectFirst(vm.appDetails.data);
       }
     });
   }
 
-  void _selectFirst(AppSettingModel? model) {
-    if (model != null && model.data.isNotEmpty) {
-      setState(() => _selectedType = model.data.first.type);
-    }
+  void _selectTab(String slug) {
+    setState(() => _selectedSlug = slug);
+    appRouter.go('/policy/$slug');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0EA),
-      appBar: _buildAppBar(),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFBF4A10),
+        elevation: 0,
+        leading: BackButton(
+          color: Colors.white,
+          onPressed: () => appRouter.go('/'),
+        ),
+        title: Row(children: [
+          const Text('🪔', style: TextStyle(fontSize: 18)),
+          const SizedBox(width: 8),
+          Text(
+            'Poojify — Policies',
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ]),
+      ),
       body: Consumer<AppSettingViewModel>(
         builder: (context, vm, _) {
           final response = vm.appDetails;
@@ -70,20 +79,18 @@ class _PolicyPageState extends State<PolicyPage> {
             );
           }
 
-          final model = response.data!;
-          final items = model.data;
-
+          final items = response.data?.data ?? [];
           if (items.isEmpty) {
-            return const Center(
-              child: Text('No policies found.'),
-            );
+            return const Center(child: Text('No policies found.'));
           }
 
-          // Auto-select first if nothing selected yet
-          _selectedType ??= items.first.type;
+          final validSlug =
+          items.any((d) => typeToSlug(d.type ?? '') == _selectedSlug)
+              ? _selectedSlug
+              : typeToSlug(items.first.type ?? '');
 
           final selectedDatum = items.firstWhere(
-                (d) => d.type == _selectedType,
+                (d) => typeToSlug(d.type ?? '') == validSlug,
             orElse: () => items.first,
           );
 
@@ -91,61 +98,31 @@ class _PolicyPageState extends State<PolicyPage> {
             children: [
               _TabHeader(
                 items: items,
-                selectedType: _selectedType!,
-                onSelect: (type) => setState(() => _selectedType = type),
+                selectedSlug: validSlug,
+                onSelect: _selectTab,
               ),
-              Expanded(
-                child: _PolicyContentView(datum: selectedDatum),
-              ),
+              Expanded(child: _PolicyContentView(datum: selectedDatum)),
             ],
           );
         },
       ),
     );
   }
-
-  AppBar _buildAppBar() {
-    return AppBar(
-      backgroundColor: const Color(0xFFBF4A10),
-      elevation: 0,
-      leading: BackButton(
-        color: Colors.white,
-        onPressed: () => Navigator.pop(context),
-      ),
-      title: Row(
-        children: [
-          const Text('🪔', style: TextStyle(fontSize: 18)),
-          const SizedBox(width: 8),
-          Text(
-            'Poojify — Policies',
-            style: GoogleFonts.playfairDisplay(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-// ─────────────────────────────────────────────
-//  TAB HEADER — built from API data
-// ─────────────────────────────────────────────
+// ── Tab Header ────────────────────────────────────────────────────────────────
 
 class _TabHeader extends StatelessWidget {
   final List<AppData> items;
-  final String selectedType;
+  final String selectedSlug;
   final ValueChanged<String> onSelect;
 
   const _TabHeader({
     required this.items,
-    required this.selectedType,
+    required this.selectedSlug,
     required this.onSelect,
   });
 
-  // Pick an emoji for each type based on keywords
   String _emojiFor(String? type) {
     final t = (type ?? '').toLowerCase();
     if (t.contains('privacy')) return '🔒';
@@ -156,10 +133,13 @@ class _TabHeader extends StatelessWidget {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
+      margin: EdgeInsets.zero,
       color: const Color(0xFFBF4A10),
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -171,48 +151,37 @@ class _TabHeader extends StatelessWidget {
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             'Transparency and trust in everything we do.',
             style: GoogleFonts.poppins(
-              fontSize: 13.5,
-              color: Colors.white.withOpacity(0.8),
+              fontSize: 13,
+              color: Colors.white.withOpacity(0.75),
             ),
           ),
-          const SizedBox(height: 20),
-          LayoutBuilder(builder: (context, constraints) {
-            final isMobile = constraints.maxWidth < 500;
-            if (isMobile) {
-              return Column(
-                children: items
-                    .map((d) => _TabChip(
-                  label: '${_emojiFor(d.type)}  ${d.type ?? ''}',
-                  selected: d.type == selectedType,
-                  onTap: () => onSelect(d.type ?? ''),
-                  bottomMargin: 8,
-                ))
-                    .toList(),
-              );
-            }
-            return Row(
-              children: items
-                  .asMap()
-                  .entries
-                  .map((e) => Expanded(
-                child: Padding(
+          const SizedBox(height: 16),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: items.asMap().entries.map((e) {
+                final slug = typeToSlug(e.value.type ?? '');
+                final isSelected = slug == selectedSlug;
+
+                return Padding(
                   padding: EdgeInsets.only(
-                      right: e.key < items.length - 1 ? 8 : 0),
+                    right: e.key < items.length - 1 ? 8 : 0,
+                    bottom: 16,
+                  ),
                   child: _TabChip(
                     label:
                     '${_emojiFor(e.value.type)}  ${e.value.type ?? ''}',
-                    selected: e.value.type == selectedType,
-                    onTap: () => onSelect(e.value.type ?? ''),
+                    selected: isSelected,
+                    onTap: () => onSelect(slug),
                   ),
-                ),
-              ))
-                  .toList(),
-            );
-          }),
+                );
+              }).toList(),
+            ),
+          ),
         ],
       ),
     );
@@ -223,13 +192,11 @@ class _TabChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final double bottomMargin;
 
   const _TabChip({
     required this.label,
     required this.selected,
     required this.onTap,
-    this.bottomMargin = 0,
   });
 
   @override
@@ -238,9 +205,8 @@ class _TabChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        margin: EdgeInsets.only(bottom: bottomMargin),
-        padding:
-        const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
+        width: 200,
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
           color: selected
               ? const Color(0xFFE87722)
@@ -249,37 +215,40 @@ class _TabChip extends StatelessWidget {
           border: Border.all(
             color: selected
                 ? const Color(0xFFE87722)
-                : Colors.white.withOpacity(0.15),
+                : Colors.white.withOpacity(0.18),
           ),
         ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.poppins(
-            fontSize: 12.5,
-            fontWeight:
-            selected ? FontWeight.w600 : FontWeight.w400,
-            color: selected
-                ? Colors.white
-                : Colors.white.withOpacity(0.55),
+        child: Center(
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.poppins(
+              fontSize: 12.5,
+              fontWeight:
+              selected ? FontWeight.w600 : FontWeight.w400,
+              color: selected
+                  ? Colors.white
+                  : Colors.white.withOpacity(0.6),
+            ),
           ),
         ),
       ),
     );
   }
 }
-
-// ─────────────────────────────────────────────
-//  POLICY CONTENT — renders API HTML/text content
-// ─────────────────────────────────────────────
+// ── Policy Content ────────────────────────────────────────────────────────────
 
 class _PolicyContentView extends StatelessWidget {
   final AppData datum;
-
   const _PolicyContentView({required this.datum});
 
   @override
   Widget build(BuildContext context) {
+    final content = datum.content ?? '';
+    final isHtml = content.contains('<') && content.contains('>');
+
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -291,17 +260,13 @@ class _PolicyContentView extends StatelessWidget {
             fontStyle: FontStyle.italic,
           ),
         ),
-        const SizedBox(height: 20),
-
-        // ── Main content card ──
+        const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Colors.black.withOpacity(0.08),
-            ),
+            border: Border.all(color: Colors.black.withOpacity(0.08)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.04),
@@ -313,55 +278,83 @@ class _PolicyContentView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color(0xFFFFBF47),
+              Row(children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFFFFBF47),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    datum.type ?? '',
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      datum.type ?? '',
-                      style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
+                ),
+              ]),
+              const SizedBox(height: 14),
+              const Divider(height: 1, color: Color(0xFFEEEEEE)),
+              const SizedBox(height: 14),
               Padding(
                 padding: const EdgeInsets.only(left: 17),
-                child: Text(
-                  datum.content ?? 'No content available.',
+                child: isHtml
+                    ? HtmlWidget(
+                  content,
+                  textStyle: GoogleFonts.poppins(
+                    fontSize: 13.5,
+                    color: Colors.black.withOpacity(0.68),
+                    height: 1.8,
+                  ),
+                  customStylesBuilder: (element) {
+                    if (element.localName == 'h2') {
+                      return {
+                        'font-size': '15px',
+                        'font-weight': '600',
+                        'margin-top': '16px',
+                        'margin-bottom': '6px',
+                        'color': '#1a1a1a',
+                      };
+                    }
+                    if (element.localName == 'h3') {
+                      return {
+                        'font-size': '13.5px',
+                        'font-weight': '600',
+                        'margin-top': '12px',
+                        'color': '#333333',
+                      };
+                    }
+                    if (element.localName == 'li') {
+                      return {'margin-bottom': '4px'};
+                    }
+                    return null;
+                  },
+                )
+                    : Text(
+                  content,
                   style: GoogleFonts.poppins(
                     fontSize: 13.5,
-                    color: Colors.black.withOpacity(0.7),
-                    height: 1.75,
+                    color: Colors.black.withOpacity(0.68),
+                    height: 1.8,
                   ),
                 ),
               ),
             ],
           ),
         ),
-
-        const SizedBox(height: 24),
-
-        // ── Footer contact note ──
+        const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: const Color(0xFFFFF8F0),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: const Color(0xFFFFBF47).withOpacity(0.3),
+              color: const Color(0xFFFFBF47).withOpacity(0.35),
             ),
           ),
           child: Row(
@@ -388,14 +381,11 @@ class _PolicyContentView extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────
-//  ERROR VIEW
-// ─────────────────────────────────────────────
+// ── Error View ────────────────────────────────────────────────────────────────
 
 class _ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
-
   const _ErrorView({required this.message, required this.onRetry});
 
   @override
@@ -411,10 +401,7 @@ class _ErrorView extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: Colors.black54,
-              ),
+              style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
