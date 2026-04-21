@@ -148,16 +148,24 @@ class _DynamicPolicyLinksRow extends StatelessWidget {
           alignment: WrapAlignment.center,
           spacing: 8,
           runSpacing: 8,
+          clipBehavior: Clip.none,
           children: [
             for (int i = 0; i < items.length; i++) ...[
               _PolicyLink(datum: items[i]),
+
               if (i < items.length - 1)
-                Container(
-                  width: 3,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: _C.white50,
-                    borderRadius: BorderRadius.circular(2),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 7,
+                    horizontal: 2,
+                  ),
+                  child: Container(
+                    width: 4,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: _C.white50,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
             ],
